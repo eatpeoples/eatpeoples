@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>밥줘 AI - 메뉴 추천 서비스</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>🍽️ 맞춤 메뉴 추천</h1>
+        <form id="recommendationForm">
+            <label for="category">원하는 메뉴 카테고리:</label>
+            <select id="category" name="category" required>
+                <option value="" disabled selected>선택하세요</option>
+                <option value="한식">한식</option>
+                <option value="중식">중식</option>
+                <option value="일식">일식</option>
+                <option value="양식">양식</option>
+                <option value="분식">분식</option>
+            </select>
+
+            <label for="age">당신의 연령대:</label>
+            <select id="age" name="age" required>
+                <option value="" disabled selected>선택하세요</option>
+                <option value="10s">10대</option>
+                <option value="20s">20대</option>
+                <option value="30s">30대</option>
+                <option value="40s">40대 이상</option>
+                </select>
+
+            <label for="budget">예상 예산 범위:</label>
+            <select id="budget" name="budget" required>
+                <option value="" disabled selected>선택하세요</option>
+                <option value="Low">저예산 (1만원 이하)</option>
+                <option value="Mid">중간 예산 (1만원 ~ 2만원)</option>
+                <option value="High">고예산 (2만원 초과)</option>
+                </select>
+
+            <button type="submit">메뉴 추천받기</button>
+        </form>
+
+        <div id="resultContainer" class="result">
+            </div>
+    </div>
+
+    <script>
+        // 이 부분을 조장님의 **MAKE AI Webhook URL**로 변경해야 합니다.
+        const WEBHOOK_URL = 'https://hook.eu2.make.com/e5u616gf08cfxmxzdir1aogxh7cbaw7c';
+        const form = document.getElementById('recommendationForm');
+        const resultContainer = document.getElementById('resultContainer');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // 폼 데이터를 객체로 변환
+            const formData = {
+                category: document.getElementById('category').value,
+                age: document.getElementById('age').value, // 예: '20s'
+                budget: document.getElementById('budget').value, // 예: 'Mid'
+            };
+
+            resultContainer.innerHTML = '✨ 추천 메뉴를 검색 중입니다...';
+
+            try {
+                // **FETCH API**를 사용하여 **MAKE AI Webhook**으로 데이터 전송
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST', // POST 방식으로 데이터를 보냅니다.
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData), // JSON 형태로 데이터 전송
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // **MAKE AI**에서 응답받은 데이터를 처리
+                const data = await response.json();
+
+                if (data.recommendation && data.recommendation.Menu_Name) {
+                    // 성공적으로 추천받았을 때 결과 출력
+                    resultContainer.innerHTML = `
+                        <h2>✅ 추천 메뉴: <span class="highlight">${data.recommendation.Menu_Name}</span></h2>
+                        <p>카테고리: ${data.recommendation.Category}</p>
+                        <p>가격: **${data.recommendation.Price.toLocaleString()}원**</p>
+                        <p>👍 추천 대상: **${data.recommendation.Recommended_Age}**</p>
+                    `;
+                } else {
+                    // 추천 메뉴를 찾지 못했을 때
+                    resultContainer.innerHTML = '🥲 죄송합니다. 조건에 맞는 메뉴를 찾지 못했습니다.';
+                }
+
+            } catch (error) {
+                console.error('Fetch Error:', error);
+                resultContainer.innerHTML = '🚨 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+            }
+        });
+    </script>
+</body>
+</html>
