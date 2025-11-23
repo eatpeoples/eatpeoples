@@ -3,100 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>밥줘 AI - 메뉴 추천 서비스</title>
+    <title>밥줘 AI - 메뉴 추천</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <div class="app-container">
+        <header>
+            <h1>🍚 밥줘 AI</h1>
+            <p>오늘 뭐 먹지? 딱 정해드립니다!</p>
+        </header>
 
-    <div class="container">
-        <h1>🍽️ 맞춤 메뉴 추천</h1>
-        <form id="recommendationForm">
-            <label for="category">원하는 메뉴 카테고리:</label>
-            <select id="category" name="category" required>
-                <option value="" disabled selected>선택하세요</option>
-                <option value="한식">한식</option>
-                <option value="중식">중식</option>
-                <option value="일식">일식</option>
-                <option value="양식">양식</option>
-                <option value="분식">분식</option>
-                <option value="기타">기타</option>
-            </select>
-
-            <label for="age">당신의 연령대:</label>
-            <select id="age" name="age" required>
-                <option value="" disabled selected>선택하세요</option>
-                <option value="10s">10대</option>
-                <option value="20s">20대</option>
-                <option value="30s">30대</option>
-                <option value="40s">40대 이상</option>
-                </select>
-
-            <label for="budget">예상 예산 범위:</label>
-            <select id="budget" name="budget" required>
-                <option value="" disabled selected>선택하세요</option>
-                <option value="Low">저예산 (1만원 이하)</option>
-                <option value="Mid">중간 예산 (1만원 ~ 2만원)</option>
-                <option value="High">고예산 (2만원 초과)</option>
-                </select>
-
-            <button type="submit">메뉴 추천받기</button>
-        </form>
-
-        <div id="resultContainer" class="result">
+        <div class="card">
+            <div class="step-group">
+                <h3><i class="fa-solid fa-utensils"></i> 메뉴 종류</h3>
+                <div class="button-group" id="category-group">
+                    <button type="button" class="select-btn" data-value="한식">🍚 한식</button>
+                    <button type="button" class="select-btn" data-value="중식">🍜 중식</button>
+                    <button type="button" class="select-btn" data-value="일식">🍣 일식</button>
+                    <button type="button" class="select-btn" data-value="양식">🍝 양식</button>
+                    <button type="button" class="select-btn" data-value="분식">떡볶이</button>
+                    <button type="button" class="select-btn" data-value="기타">🌮 기타</button>
+                </div>
+                <input type="hidden" id="category" required>
             </div>
+
+            <div class="step-group">
+                <h3><i class="fa-solid fa-user"></i> 연령대</h3>
+                <div class="button-group" id="age-group">
+                    <button type="button" class="select-btn" data-value="10s">10대</button>
+                    <button type="button" class="select-btn" data-value="20s">20대</button>
+                    <button type="button" class="select-btn" data-value="30s">30대</button>
+                    <button type="button" class="select-btn" data-value="40s">40대+</button>
+                </div>
+                <input type="hidden" id="age" required>
+            </div>
+
+            <div class="step-group">
+                <h3><i class="fa-solid fa-wallet"></i> 예산</h3>
+                <div class="button-group" id="budget-group">
+                    <button type="button" class="select-btn" data-min="0" data-max="10000">💸 1만원 이하</button>
+                    <button type="button" class="select-btn" data-min="10000" data-max="20000">💰 1~2만원</button>
+                    <button type="button" class="select-btn" data-min="20000" data-max="1000000">💳 2만원 초과</button>
+                </div>
+                <input type="hidden" id="min-price">
+                <input type="hidden" id="max-price">
+            </div>
+
+            <button id="submit-btn" class="submit-btn" disabled>메뉴 추천받기</button>
+        </div>
+
+        <div id="result-area" class="hidden">
+            <div id="loading" class="hidden">
+                <div class="spinner">🍔</div>
+                <p>AI가 맛집을 찾고 있어요...</p>
+            </div>
+            <div id="result-content" class="hidden"></div>
+        </div>
     </div>
 
     <script>
-        // 이 부분을 조장님의 **MAKE AI Webhook URL**로 변경해야 합니다.
+        // 👇 여기에 웹훅 주소 꼭 넣으세요!
         const WEBHOOK_URL = 'https://hook.us2.make.com/ncvur1c9cqvhv8lh58iyjg4o8ajfyx9r';
-        const form = document.getElementById('recommendationForm');
-        const resultContainer = document.getElementById('resultContainer');
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        document.querySelectorAll('.button-group').forEach(group => {
+            group.addEventListener('click', (e) => {
+                if (e.target.classList.contains('select-btn')) {
+                    group.querySelectorAll('.select-btn').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    if (group.id === 'budget-group') {
+                        document.getElementById('min-price').value = e.target.dataset.min;
+                        document.getElementById('max-price').value = e.target.dataset.max;
+                    } else {
+                        const inputId = group.id.replace('-group', '');
+                        document.getElementById(inputId).value = e.target.dataset.value;
+                    }
+                    checkAllSelected();
+                }
+            });
+        });
+
+        function checkAllSelected() {
+            const category = document.getElementById('category').value;
+            const age = document.getElementById('age').value;
+            const minPrice = document.getElementById('min-price').value;
             
-            // 폼 데이터를 객체로 변환
+            if (category && age && minPrice) {
+                document.getElementById('submit-btn').disabled = false;
+                document.getElementById('submit-btn').classList.add('ready');
+            }
+        }
+
+        document.getElementById('submit-btn').addEventListener('click', async () => {
+            const resultArea = document.getElementById('result-area');
+            const loading = document.getElementById('loading');
+            const resultContent = document.getElementById('result-content');
+
+            resultArea.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            resultContent.classList.add('hidden');
+            resultArea.scrollIntoView({ behavior: 'smooth' });
+
             const formData = {
                 category: document.getElementById('category').value,
-                age: document.getElementById('age').value, // 예: '20s'
-                budget: document.getElementById('budget').value, // 예: 'Mid'
+                age: document.getElementById('age').value,
+                // 여기서 숫자로 변환해서 보냅니다!
+                min_price: parseInt(document.getElementById('min-price').value),
+                max_price: parseInt(document.getElementById('max-price').value)
             };
 
-            resultContainer.innerHTML = '✨ 추천 메뉴를 검색 중입니다...';
-
             try {
-                // **FETCH API**를 사용하여 **MAKE AI Webhook**으로 데이터 전송
                 const response = await fetch(WEBHOOK_URL, {
-                    method: 'POST', // POST 방식으로 데이터를 보냅니다.
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData), // JSON 형태로 데이터 전송
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                // **MAKE AI**에서 응답받은 데이터를 처리
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
 
+                loading.classList.add('hidden');
+                resultContent.classList.remove('hidden');
+
                 if (data.recommendation && data.recommendation.Menu_Name) {
-                    // 성공적으로 추천받았을 때 결과 출력
-                    resultContainer.innerHTML = `
-                        <h2>✅ 추천 메뉴: <span class="highlight">${data.recommendation.Menu_Name}</span></h2>
-                        <p>카테고리: ${data.recommendation.Category}</p>
-                        <p>가격: **${data.recommendation.Price.toLocaleString()}원**</p>
-                        <p>👍 추천 대상: **${data.recommendation.Recommended_Age}**</p>
+                    const menu = data.recommendation;
+                    resultContent.innerHTML = `
+                        <div class="success-card">
+                            <div class="badge">${menu.Category}</div>
+                            <h2>${menu.Menu_Name}</h2>
+                            <p class="price">${menu.Price.toLocaleString()}원</p>
+                            <div class="tags">
+                                <span>#${menu.Recommended_Age}추천</span>
+                                <span>#${menu.Category}맛집</span>
+                            </div>
+                        </div>
+                        <button onclick="location.reload()" class="retry-btn">다시 추천받기</button>
                     `;
                 } else {
-                    // 추천 메뉴를 찾지 못했을 때
-                    resultContainer.innerHTML = '🥲 죄송합니다. 조건에 맞는 메뉴를 찾지 못했습니다.';
+                    resultContent.innerHTML = `<p class="error">😢 조건에 맞는 메뉴가 없어요.</p><button onclick="location.reload()" class="retry-btn">다시하기</button>`;
                 }
-
             } catch (error) {
-                console.error('Fetch Error:', error);
-                resultContainer.innerHTML = '🚨 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+                console.error(error);
+                loading.classList.add('hidden');
+                resultContent.innerHTML = `<p class="error">🚨 오류가 났어요!</p>`;
             }
         });
     </script>
